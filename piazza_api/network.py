@@ -111,7 +111,7 @@ class Network(object):
             time.sleep(sleep)
             yield self.get_post(cid)
 
-    def create_post(self, post_type, post_folders, post_subject, post_content, is_announcement=0, bypass_email=0, anonymous=False):
+    def create_post(self, post_type, post_folders, post_subject, post_content, is_announcement=0, bypass_email=0, anonymous=False, is_private=False):
         """Create a post
 
         It seems like if the post has `<p>` tags, then it's treated as HTML,
@@ -146,6 +146,25 @@ class Network(object):
                 "is_announcement": is_announcement
             }
         }
+        
+        # To make a post private to instructors, we must construct a 'feed_groups' string.
+        if is_private:
+            # We need the current user's ID to include them in the private post.
+            try:
+                user_profile = self._rpc.get_user_profile()
+                user_id = user_profile.get('user_id')
+                
+                if user_id:
+                    # Construct the string: "instr_CLASSID,USERID"
+                    feed_groups_str = f"instr_{self._nid},{user_id}"
+                    params["config"]["feed_groups"] = feed_groups_str
+                    print(f"Constructed feed_groups for private post: {feed_groups_str}")
+                else:
+                    print("Warning: Could not get user ID for private post. Posting publicly as a fallback.")
+
+            except Exception as e:
+                print(f"Warning: Failed to get user profile for private post ({e}). Posting publicly as a fallback.")
+
 
         if bypass_email:
             params["prof_override"] = True
